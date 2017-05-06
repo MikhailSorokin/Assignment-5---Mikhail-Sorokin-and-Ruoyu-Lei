@@ -191,6 +191,9 @@ struct Mesh {
   QOpenGLBuffer vertexBuffer, normalBuffer, texCoordBuffer;
 
   bvhnode *bvhroot;
+
+  bvhnode *build_bvh(bool use_SAH, vector<Triangle> &tri, long start, long end);
+  bvhnode* build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &tri, long start, long end);
   
   bool load_obj(QString filename, QString dir);
   bool load_mtl(QString filename, QString dir);

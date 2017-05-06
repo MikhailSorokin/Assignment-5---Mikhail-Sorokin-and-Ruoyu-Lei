@@ -13,12 +13,83 @@ struct centroid_idx {
   bool operator < (const centroid_idx &b) const { return centroid < b.centroid; } 
 };
 
-bvhnode *build_bvh(bool use_SAH, vector<Triangle> &tri, long start, long end) {
-  // TODO: Your code for building a BVH here.
-  // [start, end) interval triangle array the current node is operating on.
-  // tri = triangle array, this can be updated at each recursion
-  // use_SAH is a flag tha tis set to true if SAH is being used in the GUI.
-  return NULL;
+bool larger_dimension_sort_x (Triangle& tri1, Triangle& tri2) {
+    //TODO
+    return false;
+}
+
+bool larger_dimension_sort_y (Triangle& tri1, Triangle& tri2) {
+    //TODO
+    return false;
+}
+
+bvhnode* Mesh::build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &tri, long start, long end) {
+    // [start, end] interval triangle array the current node is operating on.
+    // tri = triangle array, this can be updated at each recursion
+    // use_SAH is a flag tha tis set to true if SAH is being used in the GUI.
+
+    if (use_SAH) {
+
+    } else {
+      curr->type = bvhnode::SPLIT;
+      curr->data.ival[0] = start;
+      curr->data.ival[1] = end;
+
+      //Picking the larger dimension
+      float x_range_min = INT_MAX, x_range_max = INT_MIN;
+      float y_range_min = INT_MAX, y_range_max = INT_MIN;
+
+      for (int tri_ind = start; tri_ind < end; tri_ind++) {
+          for (int v_pos_ind = 0; v_pos_ind < 3; v_pos_ind++) {
+              if (tri[tri_ind].v[v_pos_ind].x() < x_range_min) {
+                  x_range_min = tri[tri_ind].v[v_pos_ind].x();
+              } else if (tri[tri_ind].v[v_pos_ind].x() > x_range_max) {
+                  x_range_max = tri[tri_ind].v[v_pos_ind].x();
+              }
+
+              if (tri[tri_ind].v[v_pos_ind].y() < y_range_min) {
+                  y_range_min = tri[tri_ind].v[v_pos_ind].y();
+              } else if (tri[tri_ind].v[v_pos_ind].y() > y_range_max) {
+                  y_range_max = tri[tri_ind].v[v_pos_ind].y();
+              }
+          }
+      }
+
+      //TODO - Split it using a cost function, and not plain center.
+      //Starting off with bad way to choose split points
+      long split_point = 0;
+      if ((x_range_max - x_range_min) > (y_range_max - y_range_min)) {
+          split_point = (x_range_max - x_range_min) / 2;
+          //Sort bounding boxes based on the larger dimension
+          std::sort (tri.begin(), tri.end(), larger_dimension_sort_x);
+      } else {
+          split_point = (y_range_max - y_range_min) / 2;
+          std::sort (tri.begin(), tri.end(), larger_dimension_sort_y);
+      }
+
+      //get_AABB();
+
+      /*bvhnode* split_node = new bvhnode();
+      new_node->type = bvhnode::SPLIT;*/
+
+      //Split the point based on the largest point
+      if ((end - start) > 4) {
+          bvhnode* new_node = new bvhnode();
+          curr->data.children[0] = build_bvh_helper(new_node, use_SAH, tri, start, split_point);
+          curr->data.children[1] = build_bvh_helper(new_node, use_SAH, tri, split_point, end);
+      } else {
+          return curr;
+      }
+    }
+
+    //Shouldn't Get Here
+    return NULL;
+}
+
+bvhnode* Mesh::build_bvh(bool use_SAH, vector<Triangle> &tri, long start, long end) {
+    bvhnode* new_node = new bvhnode();
+    bvhroot = build_bvh_helper(new_node, use_SAH, tri, start, end);
+    return bvhroot;
 }
 
 // Delete tree in post-order traversal.
@@ -61,6 +132,8 @@ void bvh_intersect(long &aabb_cnt, long &tri_cnt, bool &found_isect,
   else {
     // TODO: Your code here. You want to intersect closer sub nodes
     // first.
+
+    // Happens on a split node.
   }
 }
 
@@ -465,7 +538,7 @@ void Mesh::storeTri() {
   }
 }
 
-// Build a BVH based ona  buffer of triangles.
+// Build a BVH based on a buffer of triangles.
 void Mesh::storeBVH(bool use_SAH) {
   if(triangles.size() == 0) storeTri();
   bvhroot = build_bvh(use_SAH, triangles, 0, triangles.size());
