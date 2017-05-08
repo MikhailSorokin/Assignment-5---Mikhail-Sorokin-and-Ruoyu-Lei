@@ -55,6 +55,15 @@ bvhnode* Mesh::build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &t
           }
       }
 
+      QVector3D minPoint = QVector3D(x_range_min, y_range_min, 0);
+      QVector3D maxPoint = QVector3D(x_range_min, y_range_min, 0);
+
+      get_AABB(minPoint, maxPoint);
+
+      //TODO - Need to calculate minPoint and maxPoint with different z value somehow?
+      curr->box.pMin = minPoint;
+      curr->box.pMax = minPoint;
+
       //TODO - Split it using a cost function, and not plain center.
       //Starting off with bad way to choose split points
       long split_point = 0;
@@ -74,9 +83,8 @@ bvhnode* Mesh::build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &t
 
       //Split the point based on the largest point
       if ((end - start) > 4) {
-          bvhnode* new_node = new bvhnode();
-          curr->data.children[0] = build_bvh_helper(new_node, use_SAH, tri, start, split_point);
-          curr->data.children[1] = build_bvh_helper(new_node, use_SAH, tri, split_point, end);
+          curr->data.children[0] = build_bvh_helper(new bvhnode(), use_SAH, tri, start, split_point);
+          curr->data.children[1] = build_bvh_helper(new bvhnode(), use_SAH, tri, split_point, end);
       } else {
           return curr;
       }
@@ -119,21 +127,38 @@ void bvh_intersect(long &aabb_cnt, long &tri_cnt, bool &found_isect,
       isect.tri_idx = idx;
       tri_cnt++;
       if(tri[idx].intersect(isect, ray)) {
-	if(found_isect) {
-	  if(isect.t < best_isect.t) best_isect = isect;
-	}
-	else {
-	  found_isect = true;
-	  best_isect = isect;
-	}
+        if(found_isect) {
+            if(isect.t < best_isect.t) best_isect = isect;
+        } else {
+          found_isect = true;
+          best_isect = isect;
+        }
       }
     }
   }
   else {
-    // TODO: Your code here. You want to intersect closer sub nodes
-    // first.
-
+    //You want to intersect closer sub nodes first.
     // Happens on a split node.
+    long start = node->data.ival[0], end = node->data.ival[1];
+    for(long idx = start; idx < end; idx++) {
+      IsectAABB iAABB;
+
+      //Intersect with x, y and z dimensions
+
+      //TODO - figure out tNear and tFar values for each triangle
+      iAABB.tNear = tri[idx].v[0].x();
+      iAABB.tFar = tri[idx].v[0].x();
+      aabb_cnt++;
+
+      /*if (node->box.intersect(iAABB, ray)) {
+          if(found_isect) {
+              if(iAABB.tNear < best_isect.t) best_isect = isect;
+          } else {
+            found_isect = true;
+            best_isect = tri[idx];
+          }
+      }*/
+    }
   }
 }
 
