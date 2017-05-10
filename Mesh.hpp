@@ -194,7 +194,10 @@ struct Mesh {
 
   bvhnode *build_bvh(bool use_SAH, vector<Triangle> &tri, long start, long end);
   bvhnode* build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &tri, long start, long end);
-  
+
+  bool larger_dimension_sort_x (Triangle& tri1, Triangle& tri2);
+  bool larger_dimension_sort_y (Triangle& tri1, Triangle& tri2);
+
   bool load_obj(QString filename, QString dir);
   bool load_mtl(QString filename, QString dir);
 
