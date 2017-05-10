@@ -6,21 +6,6 @@
 
 using namespace std;
 
-
-// Used to sort triangle bounding boxes based on centroids.
-struct centroid_idx {
-  float centroid; long idx;
-  bool operator < (const centroid_idx &b) const { return centroid < b.centroid; } 
-};
-
-bool Mesh::larger_dimension_sort_x (Triangle& tri1, Triangle& tri2) {
-    return tri1.v[0].x() < tri2.v[0].x();
-}
-
-bool Mesh::larger_dimension_sort_y (Triangle& tri1, Triangle& tri2) {
-    return tri1.v[0].y() < tri2.v[0].y();
-}
-
 bvhnode* Mesh::build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &tri, long start, long end) {
     // [start, end] interval triangle array the current node is operating on.
     // tri = triangle array, this can be updated at each recursion
@@ -113,16 +98,19 @@ bvhnode* Mesh::build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &t
           long split_point = 0;
           if ((x_range_max - x_range_min) > (y_range_max - y_range_min)) {
               split_point = (x_range_max - x_range_min) / 2;
+              for (int tri_ind = start; tri_ind < end; tri_ind++) {
+                  tri[tri_ind].center.c = (tri[tri_ind].v[0] + tri[tri_ind].v[1] + tri[tri_ind].v[2]) / 3;
+                  tri[tri_ind].center.x_axis = true;
+              }
               //Sort bounding boxes based on the larger dimension
-              std::sort(tri.begin(), tri.end(),
-                        [](const std::vector<Triangle>& tri1, const std::vector<Triangle>& tri2) {
-                return tri1.v[0].x() < tri2->v[0].x();
-              });
+              std::sort(tri.begin()+start, tri.end()-end);
           } else {
               split_point = (y_range_max - y_range_min) / 2;
-              std::sort (tri.begin() + start, end - tri.end(), [](const std::vector<Triangle>& tri1, const std::vector<Triangle>& tri2) {
-                  return tri1.v[0].y() < tri2.v[0].y();
-              });
+              for (int tri_ind = start; tri_ind < end; tri_ind++) {
+                  tri[tri_ind].center.c = (tri[tri_ind].v[0] + tri[tri_ind].v[1] + tri[tri_ind].v[2]) / 3;
+                  tri[tri_ind].center.x_axis = false;
+              }
+              std::sort(tri.begin()+start, tri.end()-end);
           }
 
           //Split the point based on the largest point
@@ -138,6 +126,10 @@ bvhnode* Mesh::build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &t
 }
 
 bvhnode* Mesh::build_bvh(bool use_SAH, vector<Triangle> &tri, long start, long end) {
+    for (int tri_ind = start; tri_ind < end; tri_ind++) {
+        tri[tri_ind].center.c = (tri[tri_ind].v[0] + tri[tri_ind].v[1] + tri[tri_ind].v[2]) / 3;
+    }
+
     bvhnode* new_node = new bvhnode();
     return build_bvh_helper(new_node, use_SAH, tri, start, end);
 }
@@ -181,25 +173,19 @@ void bvh_intersect(long &aabb_cnt, long &tri_cnt, bool &found_isect,
   else {
     //You want to intersect closer sub nodes first.
     // Happens on a split node.
-    long start = node->data.ival[0], end = node->data.ival[1];
-    for(long idx = start; idx < end; idx++) {
-      IsectAABB iAABB;
+    IsectAABB iAABB;
 
-      //Intersect with x, y and z dimensions
+    //FIXED - figure out tNear and tFar values for each triangle
+    aabb_cnt++;
 
-      //TODO - figure out tNear and tFar values for each triangle
-      iAABB.tNear = tri[idx].v[0].x();
-      iAABB.tFar = tri[idx].v[0].x();
-      aabb_cnt++;
-
-      /*if (node->box.intersect(iAABB, ray)) {
-          if(found_isect) {
-              if(iAABB.tNear < best_isect.t) best_isect = isect;
-          } else {
-            found_isect = true;
-            best_isect = tri[idx];
-          }
-      }*/
+    //Intersect with x, y and z dimensions
+    if (node->box.intersect(iAABB, ray)) {
+        bvh_intersect(aabb_cnt, tri_cnt, found_isect,
+                   best_isect,
+                   node->data.children[0], tri, ray);
+        bvh_intersect(aabb_cnt, tri_cnt, found_isect,
+                   best_isect,
+                   node->data.children[1], tri, ray);
     }
   }
 }

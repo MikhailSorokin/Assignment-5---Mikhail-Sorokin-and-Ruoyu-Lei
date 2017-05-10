@@ -68,11 +68,21 @@ struct IsectTri {
   long tri_idx; // Index of triangle in triangle buffer.
 };
 
+// Used to sort triangles based on centroids.
+struct centroid {
+  QVector3D c; bool x_axis;
+};
+
 // Triangle with vertex normals and a pointer/index to a material.
 struct Triangle {
   QVector3D v[3], n[3];
   QVector2D uv[3]; // verticies and corresponding vertex normals, and uv coordiantes.
   int mtl_idx; // material idx
+  centroid center;
+
+  bool operator < (const Triangle &b) const {
+      if (center.x_axis) return center.c.x() < b.center.c.x(); else return center.c.y() < b.center.c.y();
+  }
   
   bool intersect(IsectTri &isect, const Ray &ray)  {
     const QVector3D &o = ray.o;
