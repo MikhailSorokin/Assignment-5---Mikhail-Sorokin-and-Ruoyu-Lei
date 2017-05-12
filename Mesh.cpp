@@ -11,125 +11,131 @@ bvhnode* Mesh::build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &t
     // tri = triangle array, this can be updated at each recursion
     // use_SAH is a flag tha tis set to true if SAH is being used in the GUI.
 
-    if (use_SAH) {
+    QVector3D minPoint, maxPoint;
 
-    } else {
-      if ((end - start) < 4) {
+    //Picking the larger dimension
+    float x_range_min = tri[0].bbox().Centroid().x();
+    float x_range_max = tri[0].bbox().Centroid().x();
+    float y_range_min = tri[0].bbox().Centroid().y();
+    float y_range_max = tri[0].bbox().Centroid().y();
+
+    for (int tri_ind = start; tri_ind < end; tri_ind++) {
+        if (tri[tri_ind].bbox().Centroid().x() < x_range_min) {
+            x_range_min = tri[tri_ind].bbox().Centroid().x();
+        }
+
+        if (x_range_min = tri[tri_ind].bbox().Centroid().x() > x_range_max) {
+            x_range_min = tri[tri_ind].bbox().Centroid().x();
+        }
+
+        if (tri[tri_ind].bbox().Centroid().y() < y_range_min) {
+            y_range_min = tri[tri_ind].bbox().Centroid().y();
+        }
+
+        if (tri[tri_ind].bbox().Centroid().y() > y_range_max) {
+            y_range_max = tri[tri_ind].bbox().Centroid().y();
+        }
+    }
+
+    if ((end - start) < 4) {
+
         //This is for the bottommest level
         curr->type = bvhnode::LEAF;
+
+        get_AABB(maxPoint, minPoint, tri, start, end);
+
+        curr->box.pMin = minPoint;
+        curr->box.pMax = maxPoint;
 
         curr->data.children[0] = nullptr;
         curr->data.children[1] = nullptr;
 
         curr->data.ival[0] = start;
         curr->data.ival[1] = end;
+    } else {
+        curr->type = bvhnode::SPLIT;
 
-        QVector3D minPoint = QVector3D(INT_MAX, INT_MAX, INT_MAX);
-        QVector3D maxPoint = QVector3D(INT_MIN, INT_MIN, INT_MIN);
+      /*cout << "Start: " << start << endl;
+      cout << "End: " << end << endl;*/
 
-        //Picking the larger dimension
-        float x_range_min = INT_MAX, x_range_max = INT_MIN;
-        float y_range_min = INT_MAX, y_range_max = INT_MIN;
+      get_AABB(maxPoint, minPoint, tri, start, end);
 
-        for (int tri_ind = start; tri_ind < end; tri_ind++) {
-            for (int v_pos_ind = 0; v_pos_ind < 3; v_pos_ind++) {
-                if (tri[tri_ind].v[v_pos_ind].x() < x_range_min) {
-                    x_range_min = tri[tri_ind].v[v_pos_ind].x();
-                    minPoint = tri[tri_ind].v[v_pos_ind];
-                } else if (tri[tri_ind].v[v_pos_ind].x() > x_range_max) {
-                    x_range_max = tri[tri_ind].v[v_pos_ind].x();
-                    maxPoint = tri[tri_ind].v[v_pos_ind];
-                }
+      /*cout << "Min Point: ("
+           << minPoint.x() << "," << minPoint.y() << ","
+           << minPoint.z() << ")" << endl;
+      cout << "Max Point: ("
+           << maxPoint.x() << "," << maxPoint.y() << ","
+           << maxPoint.z() << ")" << endl;*/
 
-                if (tri[tri_ind].v[v_pos_ind].y() < y_range_min) {
-                    y_range_min = tri[tri_ind].v[v_pos_ind].y();
-                    minPoint = tri[tri_ind].v[v_pos_ind];
-                } else if (tri[tri_ind].v[v_pos_ind].y() > y_range_max) {
-                    y_range_max = tri[tri_ind].v[v_pos_ind].y();
-                    maxPoint = tri[tri_ind].v[v_pos_ind];
-                }
-            }
-        }
+      //FIXED I BELIEVE - Need to calculate minPoint and maxPoint with different z value somehow?
+      curr->box.pMin = minPoint;
+      curr->box.pMax = maxPoint;
 
-        get_AABB(minPoint, maxPoint);
+      curr->data.ival[0] = start;
+      curr->data.ival[1] = end;
 
-        curr->box.pMin = minPoint;
-        curr->box.pMax = maxPoint;
+      long split_point = (start + end) / 2;
+      //FIXED - Split it using a cost function, and not plain center.
+      //Starting off with bad way to choose split points
+      if ((x_range_max - x_range_min) > (y_range_max - y_range_min)) {
+          centroid_idx centroidComp;
+          centroidComp.idx = 0; //x
+
+          std::sort(tri.begin() + start, tri.begin() + end, centroidComp);
       } else {
-          curr->type = bvhnode::SPLIT;
-          curr->data.ival[0] = start;
-          curr->data.ival[1] = end;
+          centroid_idx centroidComp;
+          centroidComp.idx = 1; //y
 
-          QVector3D minPoint = QVector3D(INT_MAX, INT_MAX, INT_MAX);
-          QVector3D maxPoint = QVector3D(INT_MIN, INT_MIN, INT_MIN);
-
-          //Picking the larger dimension
-          float x_range_min = INT_MAX, x_range_max = INT_MIN;
-          float y_range_min = INT_MAX, y_range_max = INT_MIN;
-
-          for (int tri_ind = start; tri_ind < end; tri_ind++) {
-              for (int v_pos_ind = 0; v_pos_ind < 3; v_pos_ind++) {
-                  if (tri[tri_ind].v[v_pos_ind].x() < x_range_min) {
-                      x_range_min = tri[tri_ind].v[v_pos_ind].x();
-                      minPoint = tri[tri_ind].v[v_pos_ind];
-                  } else if (tri[tri_ind].v[v_pos_ind].x() > x_range_max) {
-                      x_range_max = tri[tri_ind].v[v_pos_ind].x();
-                      maxPoint = tri[tri_ind].v[v_pos_ind];
-                  }
-
-                  if (tri[tri_ind].v[v_pos_ind].y() < y_range_min) {
-                      y_range_min = tri[tri_ind].v[v_pos_ind].y();
-                      minPoint = tri[tri_ind].v[v_pos_ind];
-                  } else if (tri[tri_ind].v[v_pos_ind].y() > y_range_max) {
-                      y_range_max = tri[tri_ind].v[v_pos_ind].y();
-                      maxPoint = tri[tri_ind].v[v_pos_ind];
-                  }
-              }
-          }
-
-          get_AABB(minPoint, maxPoint);
-
-          //FIXED I BELIEVE - Need to calculate minPoint and maxPoint with different z value somehow?
-          curr->box.pMin = minPoint;
-          curr->box.pMax = maxPoint;
-
-          //FIXED - Split it using a cost function, and not plain center.
-          //Starting off with bad way to choose split points
-          long split_point = 0;
-          if ((x_range_max - x_range_min) > (y_range_max - y_range_min)) {
-              split_point = (x_range_max - x_range_min) / 2;
-              for (int tri_ind = start; tri_ind < end; tri_ind++) {
-                  tri[tri_ind].center.c = (tri[tri_ind].v[0] + tri[tri_ind].v[1] + tri[tri_ind].v[2]) / 3;
-                  tri[tri_ind].center.x_axis = true;
-              }
-              //Sort bounding boxes based on the larger dimension
-              std::sort(tri.begin()+start, tri.end()-end);
-          } else {
-              split_point = (y_range_max - y_range_min) / 2;
-              for (int tri_ind = start; tri_ind < end; tri_ind++) {
-                  tri[tri_ind].center.c = (tri[tri_ind].v[0] + tri[tri_ind].v[1] + tri[tri_ind].v[2]) / 3;
-                  tri[tri_ind].center.x_axis = false;
-              }
-              std::sort(tri.begin()+start, tri.end()-end);
-          }
-
-          //Split the point based on the largest point
-          curr->data.children[0] = build_bvh_helper(new bvhnode(), use_SAH, tri, start, split_point);
-          curr->data.children[1] = build_bvh_helper(new bvhnode(), use_SAH, tri, split_point, end);
-
+          std::sort(tri.begin() + start, tri.begin() + end, centroidComp);
       }
 
+      //Split the point based on the largest point
+      if (use_SAH) {
+          //TODO - Create cost function
 
+         //Choose different split point
+         long leftHS = split_point - start;
+         AABB left_side_box;
+
+         QVector3D leftMax, leftMin;
+         get_AABB(leftMax, leftMin, tri, start, split_point);
+         left_side_box.pMin = leftMin;
+         left_side_box.pMax = leftMax;
+
+         long rightHS = end - leftHS;
+         AABB right_side_box;
+
+         QVector3D rightMax, rightMin;
+         get_AABB(rightMax, rightMin, tri, split_point, end);
+         right_side_box.pMin = rightMin;
+         right_side_box.pMax = rightMax;
+
+         float A = leftHS * left_side_box.SurfaceArea();
+         float B = rightHS * right_side_box.SurfaceArea();
+
+         split_point = (A + B) / (curr->box.SurfaceArea());
+
+         cout << "Split: " << split_point << endl;
+      }
+
+      curr->data.children[0] = build_bvh_helper(new bvhnode(), use_SAH, tri, start, split_point);
+      curr->data.children[1] = build_bvh_helper(new bvhnode(), use_SAH, tri, split_point, end);
+
+      /*if ((end - start) % 2 != 0) {
+          split_point = (start + end) / 2;
+          curr->data.children[0] = build_bvh_helper(new bvhnode(), use_SAH, tri, start, split_point);
+          curr->data.children[1] = build_bvh_helper(new bvhnode(), use_SAH, tri, split_point + 1, end);
+      } else {
+          split_point = (start + end) / 2;
+          curr->data.children[0] = build_bvh_helper(new bvhnode(), use_SAH, tri, start, split_point - 1);
+          curr->data.children[1] = build_bvh_helper(new bvhnode(), use_SAH, tri, split_point + 1, end);
+      }*/
     }
 
     return curr;
 }
 
 bvhnode* Mesh::build_bvh(bool use_SAH, vector<Triangle> &tri, long start, long end) {
-    for (int tri_ind = start; tri_ind < end; tri_ind++) {
-        tri[tri_ind].center.c = (tri[tri_ind].v[0] + tri[tri_ind].v[1] + tri[tri_ind].v[2]) / 3;
-    }
-
     bvhnode* new_node = new bvhnode();
     return build_bvh_helper(new_node, use_SAH, tri, start, end);
 }
@@ -169,6 +175,7 @@ void bvh_intersect(long &aabb_cnt, long &tri_cnt, bool &found_isect,
         }
       }
     }
+
   }
   else {
     //You want to intersect closer sub nodes first.
@@ -187,6 +194,7 @@ void bvh_intersect(long &aabb_cnt, long &tri_cnt, bool &found_isect,
                    best_isect,
                    node->data.children[1], tri, ray);
     }
+
   }
 }
 
@@ -363,6 +371,27 @@ void Mesh::recenter() {
     for( uint i = 0; i < vertices.size(); ++i ) {
         QVector3D & point = vertices[i];
         point = point - center;
+    }
+}
+
+void Mesh::get_AABB(QVector3D &maxPoint, QVector3D &minPoint,
+                    vector<Triangle> &tri, long start, long end) {
+    if( tri.size() < 1) return;
+
+    maxPoint = tri[start].v[0];
+    minPoint = tri[start].v[0];
+
+    // Find the AABB
+    for( uint tri_ind = start; tri_ind < end; ++tri_ind) {
+        for (int v_ind = 0; v_ind < 3; v_ind++) {
+            QVector3D & point = tri[tri_ind].v[v_ind];
+            if( point[0] > maxPoint[0] ) maxPoint[0] = point[0];
+            if( point[1] > maxPoint[1] ) maxPoint[1] = point[1];
+            if( point[2] > maxPoint[2] ) maxPoint[2] = point[2];
+            if( point[0] < minPoint[0] ) minPoint[0] = point[0];
+            if( point[1] < minPoint[1] ) minPoint[1] = point[1];
+            if( point[2] < minPoint[2] ) minPoint[2] = point[2];
+        }
     }
 }
 
@@ -604,7 +633,7 @@ void Mesh::clearBVH() {
 
 // Checks for a ray-triangle intersection.  Returns intersection
 // position, interpolated normal and material index.
-bool Mesh::check_intersect(bool useBVH, long &aabb_cnt, long &tri_cnt, int &mtl_idx, QVector3D &pos, QVector3D &norm, Ray &ray) {
+bool Mesh::check_intersect(bool useBVH, long &aabb_cnt, long &tri_cnt, int &mtl_idx, QVector3D &pos, QVector3D &norm, Ray &ray, QVector2D uv) {
   bool found_isect = false;
   IsectTri best;
   best.tri_idx = -1;
@@ -632,6 +661,7 @@ bool Mesh::check_intersect(bool useBVH, long &aabb_cnt, long &tri_cnt, int &mtl_
     Triangle &t = triangles.at(best.tri_idx);
     pos = best.b[0] * t.v[0] + best.b[1] * t.v[1] + best.b[2] * t.v[2];
     norm = best.b[0] * t.n[0] + best.b[1] * t.n[1] + best.b[2] * t.n[2];
+    uv = best.b[0] * t.uv[0] + best.b[1] * t.uv[1];
     mtl_idx = t.mtl_idx;
   }
   return found_isect;

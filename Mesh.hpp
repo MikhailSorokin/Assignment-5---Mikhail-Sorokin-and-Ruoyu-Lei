@@ -18,6 +18,7 @@ struct Material {
   }
   QString name;
   QVector3D Ka, Kd, Ks;
+  QVector2D uv;
   float Ns;
   bool is_texture;
   QImage map_Kd_img; // NOTE: mirrored image is stored.
@@ -68,21 +69,11 @@ struct IsectTri {
   long tri_idx; // Index of triangle in triangle buffer.
 };
 
-// Used to sort triangles based on centroids.
-struct centroid {
-  QVector3D c; bool x_axis;
-};
-
 // Triangle with vertex normals and a pointer/index to a material.
 struct Triangle {
   QVector3D v[3], n[3];
   QVector2D uv[3]; // verticies and corresponding vertex normals, and uv coordiantes.
   int mtl_idx; // material idx
-  centroid center;
-
-  bool operator < (const Triangle &b) const {
-      if (center.x_axis) return center.c.x() < b.center.c.x(); else return center.c.y() < b.center.c.y();
-  }
   
   bool intersect(IsectTri &isect, const Ray &ray)  {
     const QVector3D &o = ray.o;
@@ -136,6 +127,25 @@ struct Triangle {
   }
 };
 
+
+// Used to sort triangles based on centroids.
+struct centroid_idx {
+    int idx = 0;
+
+    bool operator() (Triangle &a, Triangle &b) {
+        bool status = false;
+
+        AABB abox = a.bbox();
+        AABB bbox = b.bbox();
+        if (idx == 0) { //idx = 0 - x-axis
+            status= (abox.Centroid().x() < bbox.Centroid().x());
+        } else if (idx == 1) { //idx = 1 - y-axis
+            status= (abox.Centroid().y() < bbox.Centroid().y());
+        }
+
+        return status;
+    }
+};
 
 // Tagged union representing a bounding volume heirarchy node.
 // http://en.cppreference.com/w/cpp/language/union
@@ -205,9 +215,6 @@ struct Mesh {
   bvhnode *build_bvh(bool use_SAH, vector<Triangle> &tri, long start, long end);
   bvhnode* build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &tri, long start, long end);
 
-  bool larger_dimension_sort_x (Triangle& tri1, Triangle& tri2);
-  bool larger_dimension_sort_y (Triangle& tri1, Triangle& tri2);
-
   bool load_obj(QString filename, QString dir);
   bool load_mtl(QString filename, QString dir);
 
@@ -223,11 +230,14 @@ struct Mesh {
   void recenter();
   void get_AABB(QVector3D &maxPoint, QVector3D &minPoint);
 
+  void get_AABB(QVector3D &maxPoint, QVector3D &minPoint,
+                vector<Triangle> &tri, long start, long end);
+
   void add_face(const vector<int> &cur_vert, int mtl_idx);
   void add_face(int v0, int v1, int v2, int v3, int mtl_idx = 0);
   void add_face(const vector<int> &cur_vert, const vector<int> &cur_vt, const vector<int> &cur_vn, int mtl_idx);
 
-  bool check_intersect(bool useBVH, long &aabb_cnt, long &tri_cnt, int &mtl_idx, QVector3D &pos, QVector3D &norm, Ray &ray);
+  bool check_intersect(bool useBVH, long &aabb_cnt, long &tri_cnt, int &mtl_idx, QVector3D &pos, QVector3D &norm, Ray &ray, QVector2D uv);
 };
 
 

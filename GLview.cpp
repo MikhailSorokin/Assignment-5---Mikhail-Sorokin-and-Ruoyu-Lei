@@ -293,43 +293,65 @@ bool GLview::Render(QString pngFile, bool useBVH, bool useSAH) {
 
       // Check ray for intersection and get normal and position of intersection point.
       QVector3D Position, Normal;
+      QVector2D uv;
       int mtl_idx = -1;
-      if(mesh->check_intersect(useBVH, aabb_cnt, tri_cnt, mtl_idx, Position, Normal, ray)) {
-	// Phong shading.
-	Material &m = mesh->materials[mtl_idx];
+      if(mesh->check_intersect(useBVH, aabb_cnt, tri_cnt, mtl_idx, Position, Normal, ray, uv)) {
+            // Phong shading.
+            Material &m = mesh->materials[mtl_idx];
 
-	QVector3D e = eye;
-	QVector3D l = QVector3D(LightDirection);
-	QVector3D p = Position;
-	QVector3D Li = LightIntensity;
+            float shadow_factor = 1.0;
+            float epsilon = 0.000001;
 
-	QVector3D n = Normal.normalized();
-	QVector3D s = l.normalized(); 
-	QVector3D v = (e - p).normalized();   
+            QVector3D shadow_Position, shadow_Normal;
+            Ray shadow_Ray;
+            shadow_Ray.d = LightDirection;
+            shadow_Ray.o = Position + epsilon * LightDirection;
+            shadow_Ray.mint = 0;
+            shadow_Ray.maxt = 1 * 10^-9;
 
-	QVector3D r = -s + 2 * QVector3D::dotProduct(s, n) * n;
+            if (mesh->check_intersect(useBVH, aabb_cnt, tri_cnt, mtl_idx, shadow_Position, shadow_Normal, shadow_Ray, uv)) {
+                shadow_factor = 0.1;
+            }
 
-	QVector3D L(0,0,0);
-	if(m.Ns > 0) {
-	  L = Li * ( m.Ka +                                                         // ambient
-		     m.Kd * max(0.0f, QVector3D::dotProduct(n, s)) +                // diffuse
-		     m.Ks * powf( max(0.0f, QVector3D::dotProduct(r,v)), m.Ns) );   // specular
-	}
-	else {
-	  L = Li * ( m.Ka +                                                         // ambient
-		     m.Kd * max(0.0f, QVector3D::dotProduct(n, s))  );   // specular	    
-	}
-	red = L[0]; green = L[1]; blue = L[2]; // Phong Shading color
-      }
-      else {
-	red = 0.15; green = 0.15; blue = 0.15;	// Background color
-      }
-      // Clamp color values.
-      red = min(red, 1.0f); green = min(green, 1.0f); blue = min(blue, 1.0f);
-      red = max(red, 0.0f); green = max(green, 0.0f); blue = max(blue, 0.0f);
-      QRgb value = qRgb(red*255.0, green*255.0, blue*255.0) ;
-      output.setPixel(imgx, imgy, value);
-    }
+            //FOR TEXTURE
+            /*QVector3D KD = m.Kd;
+            if (m.is_texture) {
+                //otherwise get UV KD from texture
+                KD = m.map_Kd_img.(uv[0], uv[1]);
+            }*/
+
+            QVector3D e = eye;
+            QVector3D l = QVector3D(LightDirection);
+            QVector3D p = Position;
+            QVector3D Li = LightIntensity * shadow_factor;
+
+            QVector3D n = Normal.normalized();
+            QVector3D s = l.normalized();
+            QVector3D v = (e - p).normalized();
+
+            QVector3D r = -s + 2 * QVector3D::dotProduct(s, n) * n;
+
+            QVector3D L(0,0,0);
+            if(m.Ns > 0) {
+              L = Li * ( m.Ka +                                                         // ambient
+                     m.Kd * max(0.0f, QVector3D::dotProduct(n, s)) +                // diffuse
+                     m.Ks * powf( max(0.0f, QVector3D::dotProduct(r,v)), m.Ns) );   // specular
+            }
+            else {
+              L = Li * ( m.Ka +                                                         // ambient
+                     m.Kd * max(0.0f, QVector3D::dotProduct(n, s))  );   // specular
+            }
+            red = L[0]; green = L[1]; blue = L[2]; // Phong Shading color
+              }
+              else {
+            red = 0.15; green = 0.15; blue = 0.15;	// Background color
+              }
+              // Clamp color values.
+              red = min(red, 1.0f); green = min(green, 1.0f); blue = min(blue, 1.0f);
+              red = max(red, 0.0f); green = max(green, 0.0f); blue = max(blue, 0.0f);
+              QRgb value = qRgb(red*255.0, green*255.0, blue*255.0) ;
+              output.setPixel(imgx, imgy, value);
+        }
   }
   output.save(pngFile);
 
