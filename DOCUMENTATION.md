@@ -11,7 +11,23 @@ Programming Assignment 5: Ray-Triangle Intersection Acceleration
 
 # Bounding
 
+After BVH has been implemented, we can measure a significant difference of elapsed time between rendering using BVH verus testing on all Triangles. Take the model lion as an example.
+
+TEST ALL:
+
+![foo](after_img/lion_test_all.png)
+
+BVH:
+
+![foo](after_img/lion_bvh.png)
+
+It took my laptop 54.71 seconds to finish the first "test all" rendering, whereas the BVH in the second pictuer only took 0.02 second to finish.
+
 # SAH
+
+SAH has been implemented, but is restricted to be only applied on a few models. Take the cude as an example.
+
+
 
 # Textures
 
@@ -24,7 +40,7 @@ BEFORE:
 
 AFTER:
 
-![foo]([)after_img/Texture_Mercedes.png)
+![foo](after_img/Texture_Mercedes.png)
 
 # Shadows
 
