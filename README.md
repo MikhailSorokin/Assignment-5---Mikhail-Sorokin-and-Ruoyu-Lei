@@ -25,7 +25,7 @@ It took my laptop 54.71 seconds to finish the first "test all" rendering, wherea
 
 # SAH
 
-SAH has been implemented, but is restricted to be only applied on a few models. Take the cude as an example.
+SAH has been implemented, but is restricted to be only applied on a few models. Take the cube as an example.
 
 
 
@@ -44,7 +44,7 @@ AFTER:
 
 # Shadows
 
-Before texture, one couldn't see the black shadows from objects that are being blocked
+Before shadows, one couldn't see the black shadows from objects that are being blocked
 by the light. Afterwards, every pixel that was not blocked by another
 surface in the scene had a shadow ray created. As you can see in the following images, the one before doesn't have any shadows in tire and back of the car. Here it is in action:
 
