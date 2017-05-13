@@ -12,13 +12,12 @@ struct Material {
   Material() { 
     // Default material values. 
     Ns = 100; is_texture = false; map_Kd = NULL;
-    Kd = QVector3D(0.8, 0.8, 0.8);
-    Ks = QVector3D(0.95, 0.95, 0.95);
-    Ka = QVector3D(0.1, 0.1, 0.1);
+    Kd = QVector3D(0.8f, 0.8f, 0.8f);
+    Ks = QVector3D(0.95f, 0.95f, 0.95f);
+    Ka = QVector3D(0.1f, 0.1f, 0.1f);
   }
   QString name;
   QVector3D Ka, Kd, Ks;
-  QVector2D uv;
   float Ns;
   bool is_texture;
   QImage map_Kd_img; // NOTE: mirrored image is stored.
@@ -237,7 +236,7 @@ struct Mesh {
   void add_face(int v0, int v1, int v2, int v3, int mtl_idx = 0);
   void add_face(const vector<int> &cur_vert, const vector<int> &cur_vt, const vector<int> &cur_vn, int mtl_idx);
 
-  bool check_intersect(bool useBVH, long &aabb_cnt, long &tri_cnt, int &mtl_idx, QVector3D &pos, QVector3D &norm, Ray &ray, QVector2D uv);
+  bool check_intersect(bool useBVH, long &aabb_cnt, long &tri_cnt, int &mtl_idx, QVector3D &pos, QVector3D &norm, Ray &ray, QVector2D &uv);
 };
 
 

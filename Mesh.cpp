@@ -38,7 +38,6 @@ bvhnode* Mesh::build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &t
     }
 
     if ((end - start) < 4) {
-
         //This is for the bottommest level
         curr->type = bvhnode::LEAF;
 
@@ -53,19 +52,9 @@ bvhnode* Mesh::build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &t
         curr->data.ival[0] = start;
         curr->data.ival[1] = end;
     } else {
-        curr->type = bvhnode::SPLIT;
-
-      /*cout << "Start: " << start << endl;
-      cout << "End: " << end << endl;*/
+      curr->type = bvhnode::SPLIT;
 
       get_AABB(maxPoint, minPoint, tri, start, end);
-
-      /*cout << "Min Point: ("
-           << minPoint.x() << "," << minPoint.y() << ","
-           << minPoint.z() << ")" << endl;
-      cout << "Max Point: ("
-           << maxPoint.x() << "," << maxPoint.y() << ","
-           << maxPoint.z() << ")" << endl;*/
 
       //FIXED I BELIEVE - Need to calculate minPoint and maxPoint with different z value somehow?
       curr->box.pMin = minPoint;
@@ -74,7 +63,7 @@ bvhnode* Mesh::build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &t
       curr->data.ival[0] = start;
       curr->data.ival[1] = end;
 
-      long split_point = (start + end) / 2;
+      int split_point = (start + end) / 2;
       //FIXED - Split it using a cost function, and not plain center.
       //Starting off with bad way to choose split points
       if ((x_range_max - x_range_min) > (y_range_max - y_range_min)) {
@@ -91,45 +80,31 @@ bvhnode* Mesh::build_bvh_helper(bvhnode* curr, bool use_SAH, vector<Triangle> &t
 
       //Split the point based on the largest point
       if (use_SAH) {
-          //TODO - Create cost function
-
          //Choose different split point
-         long leftHS = split_point - start;
-         AABB left_side_box;
 
+          int leftHS = split_point - start - 1;
+          int rightHS = end - split_point;
+
+         AABB left_side_box;
          QVector3D leftMax, leftMin;
-         get_AABB(leftMax, leftMin, tri, start, split_point);
+         get_AABB(leftMax, leftMin, tri, start, leftHS);
          left_side_box.pMin = leftMin;
          left_side_box.pMax = leftMax;
 
-         long rightHS = end - leftHS;
          AABB right_side_box;
-
          QVector3D rightMax, rightMin;
-         get_AABB(rightMax, rightMin, tri, split_point, end);
+         get_AABB(rightMax, rightMin, tri, rightHS, end);
          right_side_box.pMin = rightMin;
          right_side_box.pMax = rightMax;
 
          float A = leftHS * left_side_box.SurfaceArea();
          float B = rightHS * right_side_box.SurfaceArea();
-
          split_point = (A + B) / (curr->box.SurfaceArea());
-
-         cout << "Split: " << split_point << endl;
       }
 
       curr->data.children[0] = build_bvh_helper(new bvhnode(), use_SAH, tri, start, split_point);
       curr->data.children[1] = build_bvh_helper(new bvhnode(), use_SAH, tri, split_point, end);
 
-      /*if ((end - start) % 2 != 0) {
-          split_point = (start + end) / 2;
-          curr->data.children[0] = build_bvh_helper(new bvhnode(), use_SAH, tri, start, split_point);
-          curr->data.children[1] = build_bvh_helper(new bvhnode(), use_SAH, tri, split_point + 1, end);
-      } else {
-          split_point = (start + end) / 2;
-          curr->data.children[0] = build_bvh_helper(new bvhnode(), use_SAH, tri, start, split_point - 1);
-          curr->data.children[1] = build_bvh_helper(new bvhnode(), use_SAH, tri, split_point + 1, end);
-      }*/
     }
 
     return curr;
@@ -183,7 +158,6 @@ void bvh_intersect(long &aabb_cnt, long &tri_cnt, bool &found_isect,
     IsectAABB iAABB;
 
     //FIXED - figure out tNear and tFar values for each triangle
-    aabb_cnt++;
 
     //Intersect with x, y and z dimensions
     if (node->box.intersect(iAABB, ray)) {
@@ -382,7 +356,7 @@ void Mesh::get_AABB(QVector3D &maxPoint, QVector3D &minPoint,
     minPoint = tri[start].v[0];
 
     // Find the AABB
-    for( uint tri_ind = start; tri_ind < end; ++tri_ind) {
+    for(int tri_ind = start; tri_ind < end; ++tri_ind) {
         for (int v_ind = 0; v_ind < 3; v_ind++) {
             QVector3D & point = tri[tri_ind].v[v_ind];
             if( point[0] > maxPoint[0] ) maxPoint[0] = point[0];
@@ -633,7 +607,7 @@ void Mesh::clearBVH() {
 
 // Checks for a ray-triangle intersection.  Returns intersection
 // position, interpolated normal and material index.
-bool Mesh::check_intersect(bool useBVH, long &aabb_cnt, long &tri_cnt, int &mtl_idx, QVector3D &pos, QVector3D &norm, Ray &ray, QVector2D uv) {
+bool Mesh::check_intersect(bool useBVH, long &aabb_cnt, long &tri_cnt, int &mtl_idx, QVector3D &pos, QVector3D &norm, Ray &ray, QVector2D &uv) {
   bool found_isect = false;
   IsectTri best;
   best.tri_idx = -1;
@@ -661,7 +635,7 @@ bool Mesh::check_intersect(bool useBVH, long &aabb_cnt, long &tri_cnt, int &mtl_
     Triangle &t = triangles.at(best.tri_idx);
     pos = best.b[0] * t.v[0] + best.b[1] * t.v[1] + best.b[2] * t.v[2];
     norm = best.b[0] * t.n[0] + best.b[1] * t.n[1] + best.b[2] * t.n[2];
-    uv = best.b[0] * t.uv[0] + best.b[1] * t.uv[1];
+    uv = best.b[0] * t.uv[0] + best.b[1] * t.uv[1] + best.b[2] * t.uv[2];
     mtl_idx = t.mtl_idx;
   }
   return found_isect;

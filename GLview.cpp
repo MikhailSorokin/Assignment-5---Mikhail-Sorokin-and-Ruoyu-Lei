@@ -298,7 +298,6 @@ bool GLview::Render(QString pngFile, bool useBVH, bool useSAH) {
       if(mesh->check_intersect(useBVH, aabb_cnt, tri_cnt, mtl_idx, Position, Normal, ray, uv)) {
             // Phong shading.
             Material &m = mesh->materials[mtl_idx];
-
             float shadow_factor = 1.0;
             float epsilon = 0.000001;
 
@@ -307,18 +306,28 @@ bool GLview::Render(QString pngFile, bool useBVH, bool useSAH) {
             shadow_Ray.d = LightDirection;
             shadow_Ray.o = Position + epsilon * LightDirection;
             shadow_Ray.mint = 0;
-            shadow_Ray.maxt = 1 * 10^-9;
+            shadow_Ray.maxt = 1 * M_E * 9;
 
             if (mesh->check_intersect(useBVH, aabb_cnt, tri_cnt, mtl_idx, shadow_Position, shadow_Normal, shadow_Ray, uv)) {
                 shadow_factor = 0.1;
             }
 
             //FOR TEXTURE
-            /*QVector3D KD = m.Kd;
+            QVector3D KD = m.Kd;
             if (m.is_texture) {
                 //otherwise get UV KD from texture
-                KD = m.map_Kd_img.(uv[0], uv[1]);
-            }*/
+                int x_value = min(uv.x() * m.map_Kd_img.width(), m.map_Kd_img.width() - 1.0f);
+                int y_value = min(uv.y() * m.map_Kd_img.height(), m.map_Kd_img.height() - 1.0f);
+                QColor color = m.map_Kd_img.pixelColor(x_value, y_value);
+                KD = QVector3D(color.red(), color.green(), color.blue());
+                red = min(color.red()*1.0f, 255.0f);
+                green = min(color.green()*1.0f, 255.0f);
+                blue = min( color.blue()*1.0f, 255.0f);
+                red = max(red, 0.0f);
+                green = max(green, 0.0f);
+                blue = max(blue, 0.0f);
+                KD = QVector3D(red / 255, green / 255, blue / 255);
+            }
 
             QVector3D e = eye;
             QVector3D l = QVector3D(LightDirection);
@@ -334,24 +343,23 @@ bool GLview::Render(QString pngFile, bool useBVH, bool useSAH) {
             QVector3D L(0,0,0);
             if(m.Ns > 0) {
               L = Li * ( m.Ka +                                                         // ambient
-                     m.Kd * max(0.0f, QVector3D::dotProduct(n, s)) +                // diffuse
+                     KD * max(0.0f, QVector3D::dotProduct(n, s)) +                // diffuse
                      m.Ks * powf( max(0.0f, QVector3D::dotProduct(r,v)), m.Ns) );   // specular
             }
             else {
               L = Li * ( m.Ka +                                                         // ambient
-                     m.Kd * max(0.0f, QVector3D::dotProduct(n, s))  );   // specular
+                     KD * max(0.0f, QVector3D::dotProduct(n, s))  );   // specular
             }
             red = L[0]; green = L[1]; blue = L[2]; // Phong Shading color
-              }
-              else {
+        } else {
             red = 0.15; green = 0.15; blue = 0.15;	// Background color
-              }
-              // Clamp color values.
-              red = min(red, 1.0f); green = min(green, 1.0f); blue = min(blue, 1.0f);
-              red = max(red, 0.0f); green = max(green, 0.0f); blue = max(blue, 0.0f);
-              QRgb value = qRgb(red*255.0, green*255.0, blue*255.0) ;
-              output.setPixel(imgx, imgy, value);
         }
+      // Clamp color values.
+      red = min(red, 1.0f); green = min(green, 1.0f); blue = min(blue, 1.0f);
+      red = max(red, 0.0f); green = max(green, 0.0f); blue = max(blue, 0.0f);
+      QRgb value = qRgb(red*255.0, green*255.0, blue*255.0) ;
+      output.setPixel(imgx, imgy, value);
+    }
   }
   output.save(pngFile);
 
