@@ -36,17 +36,17 @@ the texture image was applied to every pixel on the
 
 BEFORE:
 
-![foo](before_img/BVH_Mercedes.png)
+![foo](before_img/BVH_Redbull.png)
 
 AFTER:
 
-![foo](after_img/Texture_Mercedes.png)
+![foo](after_img/Texture_Redbull.png)
 
 # Shadows
 
 Before texture, one couldn't see the black shadows from objects that are being blocked
 by the light. Afterwards, every pixel that was not blocked by another
-surface in the scene had a shadow ray created. Here it is in action:
+surface in the scene had a shadow ray created. As you can see in the following images, the one before doesn't have any shadows in tire and back of the car. Here it is in action:
 
 BEFORE:
 
